@@ -1,11 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from app import models, schemas
 from app.database import engine, SessionLocal, Base
 
 app = FastAPI()
 
-Base.metadata.create_all(bind=engine)
 
 def get_db():
     db = SessionLocal()
@@ -13,6 +12,12 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
 
 #@app.post("/reg")
 @app.post("/register")
@@ -22,6 +27,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "User created"}
 
+
 @app.post("/tasks")
 def create_task(task: schemas.TaskCreate, user_id: int, db: Session = Depends(get_db)):
     db_task = models.Task(title=task.title, user_id=user_id)
@@ -29,7 +35,7 @@ def create_task(task: schemas.TaskCreate, user_id: int, db: Session = Depends(ge
     db.commit()
     return {"message": "Task created"}
 
+
 @app.get("/tasks", response_model=list[schemas.TaskOut])
 def get_tasks(user_id: int, db: Session = Depends(get_db)):
     return db.query(models.Task).filter(models.Task.user_id == user_id).all()
-    #return db.query(models.Task)
